@@ -2,16 +2,29 @@ from fastapi import FastAPI, Depends, HTTPException
 from typing import List
 import uvicorn
 from psycopg import Connection
+import signal
+import sys
 
-from .database import get_db, connection_pool
-from . import models, schemas
+from app.database import get_db, connection_pool
+from app import models, schemas
 
 app = FastAPI(title="FastAPI Example")
+
+def signal_handler(sig, frame):
+    print("\nClosing connection pool...")
+    connection_pool.close()
+    sys.exit(0)
 
 @app.on_event("startup")
 async def startup_event():
     with connection_pool.connection() as conn:
         models.init_db(conn)
+    # Register signal handler
+    signal.signal(signal.SIGINT, signal_handler)
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    connection_pool.close()
 
 @app.post("/items/", response_model=schemas.Item)
 def create_item(item: schemas.ItemCreate, conn: Connection = Depends(get_db)):
@@ -59,4 +72,7 @@ def read_item(item_id: int, conn: Connection = Depends(get_db)):
         return result
 
 if __name__ == "__main__":
-    uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)
+    try:
+        uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)
+    finally:
+        connection_pool.close()
