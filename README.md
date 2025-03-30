@@ -45,6 +45,21 @@ python -m app.scripts.gen_users
 psql -U postgres -d service_example -f insert_data.sql
 ```
 
+5. Run postgres and pgadmin from docker-compose
+
+```
+docker compose -f ./docker/docker-compose.yml up -d
+
+# stop
+docker compose -f ./docker/docker-compose.yml down
+
+PGPASSWORD=<postgres_password> psql -h localhost -p 5432 -U postgres -c "CREATE DATABASE service_example;"
+# 
+PGPASSWORD=<postgres_password> psql -h localhost -p 5432 -U postgres -d service_example -f app/scripts/init.sql
+# insert dummy data
+PGPASSWORD=<postgres_password> psql -h localhost -p 5432 -U postgres -d service_example -f app/scripts/insert_data.sql
+```
+
 5. Run the service:
 ```bash
 # Development mode with auto-reload
