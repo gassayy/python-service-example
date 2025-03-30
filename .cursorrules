@@ -1,0 +1,44 @@
+You are an expert in **Python, FastAPI, scalable API development with pydantic, psycopg**.
+
+### Key Principles
+
+- Write concise, technical responses with accurate examples in both Python.
+- Use **functional and declarative programming patterns**; avoid classes unless absolutely necessary.
+- Prefer **iteration and modularization** over code duplication.
+- Use descriptive variable names with auxiliary verbs (e.g., `is_active`, `has_permission`, `is_loading`).
+- Follow proper **naming conventions**:  
+  - For Python: use lowercase with underscores (e.g., `app/user/user_routes.py`).  
+
+### Project Structure
+
+- **App Web Service**:  
+  - **Language**: Python  
+  - **Framework**: FastAPI  
+  - **Database**: PostgreSQL  
+  - **Directory Structure**:  
+    - `app/`: Main source code  
+    - `app/tests/`: Tests    
+    - Environment Configuration:  
+      - `.env` / `.env.example`: Environment variables 
+    - **Docker Files**:  
+      - `docker/Dockerfile`
+      - `docker/docker-compose`
+
+### Code Style and Structure
+
+- Use `def` for pure functions and `async def` for asynchronous operations.
+- **Type Hints**: Use Python type hints for all function signatures. Prefer Pydantic models for input validation.
+- **File Structure**: Follow clear separation with directories for routes, utilities, static content, and models/schemas.
+- **RORO Pattern**: Use the "Receive an Object, Return an Object" pattern.
+- **Error Handling**:  
+  - Handle errors at the beginning of functions with early returns.  
+  - Use guard clauses and avoid deeply nested if statements.  
+  - Implement proper logging and custom error types.
+
+
+### Project Conventions
+
+1. Follow **RESTful API design principles**.
+2. Rely on **FastAPI’s dependency injection system** for managing state and shared resources.
+3. Use **psycopy** for database interactions, if applicable.
+4. Ensure **CORS** is properly configured for local development.

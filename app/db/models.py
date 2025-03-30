@@ -1,5 +1,5 @@
 import json
-from datetime import timedelta
+from datetime import timedelta, datetime, timezone
 from io import BytesIO
 from re import sub
 from typing import TYPE_CHECKING, Annotated, Optional, Self
@@ -18,6 +18,7 @@ from app.db.enums import (
 )
 if TYPE_CHECKING:
     from app.users.user_schemas import UserIn, UserUpdate
+    from app.tasks.task_schemas import TaskCreate, TaskUpdate
 
 def dump_and_check_model(db_model: BaseModel):
     """Dump the Pydantic model, removing None and default values.
@@ -306,3 +307,207 @@ class DbUser(BaseModel):
             )
 
         return updated_user
+
+class DbTask(BaseModel):
+    """Table tasks."""
+
+    id: int
+    title: str
+    description: Optional[str] = None
+    due_date: Optional[AwareDatetime] = None
+    is_completed: bool = False
+    created_at: AwareDatetime
+    updated_at: AwareDatetime
+
+    @classmethod
+    async def one(cls, db: Connection, task_id: int) -> Self:
+        """Get a single task by ID.
+
+        Args:
+            db: Database connection
+            task_id: ID of the task to retrieve
+
+        Raises:
+            KeyError: If task not found
+
+        Returns:
+            Self: Task object
+        """
+        async with db.cursor(row_factory=class_row(cls)) as cur:
+            await cur.execute(
+                """
+                SELECT * FROM tasks
+                WHERE id = %(task_id)s;
+                """,
+                {"task_id": task_id},
+            )
+            db_task = await cur.fetchone()
+
+        if db_task is None:
+            raise KeyError(f"Task ({task_id}) not found.")
+
+        return db_task
+
+    @classmethod
+    async def all(
+        cls,
+        db: Connection,
+        skip: Optional[int] = None,
+        limit: Optional[int] = None,
+        search: Optional[str] = None,
+    ) -> list[Self]:
+        """Fetch all tasks with optional filtering.
+
+        Args:
+            db: Database connection
+            skip: Number of records to skip
+            limit: Maximum number of records to return
+            search: Optional search term for filtering tasks
+
+        Returns:
+            list[Self]: List of task objects
+        """
+        filters = []
+        params = {"offset": skip, "limit": limit} if skip and limit else {}
+
+        if search:
+            filters.append(
+                "(title ILIKE %(search)s OR description ILIKE %(search)s)"
+            )
+            params["search"] = f"%{search}%"
+
+        sql = f"""
+            SELECT * FROM tasks
+            {"WHERE " + " AND ".join(filters) if filters else ""}
+            ORDER BY created_at DESC
+        """
+        sql += (
+            """
+            OFFSET %(offset)s
+            LIMIT %(limit)s;
+        """
+            if skip and limit
+            else ";"
+        )
+
+        async with db.cursor(row_factory=class_row(cls)) as cur:
+            log.info(f"Executing query: {sql!r} with params: {params!r}")
+            await cur.execute(sql, params)
+            return await cur.fetchall()
+
+    @classmethod
+    async def create(
+        cls,
+        db: Connection,
+        task_in: "TaskCreate",
+    ) -> Self:
+        """Create a new task.
+
+        Args:
+            db: Database connection
+            task_in: Task creation data
+
+        Raises:
+            HTTPException: If creation fails
+
+        Returns:
+            Self: Created task object
+        """
+        model_dump = dump_and_check_model(task_in)
+        now = datetime.now(timezone.utc)
+        
+        # Add timestamps
+        model_dump.update({
+            "created_at": now,
+            "updated_at": now,
+        })
+        
+        columns = ", ".join(model_dump.keys())
+        value_placeholders = ", ".join(f"%({key})s" for key in model_dump.keys())
+
+        sql = f"""
+            INSERT INTO tasks
+                ({columns})
+            VALUES
+                ({value_placeholders})
+            RETURNING *;
+        """
+
+        async with db.cursor(row_factory=class_row(cls)) as cur:
+            await cur.execute(sql, model_dump)
+            new_task = await cur.fetchone()
+
+        if new_task is None:
+            msg = f"Failed to create task: {model_dump}"
+            log.error(msg)
+            raise HTTPException(
+                status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+                detail=msg
+            )
+
+        return new_task
+
+    @classmethod
+    async def update(
+        cls, db: Connection, task_id: int, task_update: "TaskUpdate"
+    ) -> Self:
+        """Update an existing task.
+
+        Args:
+            db: Database connection
+            task_id: ID of the task to update
+            task_update: Task update data
+
+        Raises:
+            HTTPException: If update fails
+
+        Returns:
+            Self: Updated task object
+        """
+        model_dump = dump_and_check_model(task_update)
+        model_dump["updated_at"] = datetime.now(timezone.utc)
+        
+        placeholders = [f"{key} = %({key})s" for key in model_dump.keys()]
+        sql = f"""
+            UPDATE tasks
+            SET {", ".join(placeholders)}
+            WHERE id = %(task_id)s
+            RETURNING *;
+        """
+
+        async with db.cursor(row_factory=class_row(cls)) as cur:
+            await cur.execute(
+                sql,
+                {"task_id": task_id, **model_dump},
+            )
+            updated_task = await cur.fetchone()
+
+        if updated_task is None:
+            msg = f"Failed to update task with ID: {task_id}"
+            log.error(msg)
+            raise HTTPException(
+                status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+                detail=msg
+            )
+
+        return updated_task
+
+    @classmethod
+    async def delete(cls, db: Connection, task_id: int) -> bool:
+        """Delete a task.
+
+        Args:
+            db: Database connection
+            task_id: ID of the task to delete
+
+        Returns:
+            bool: True if task was deleted, False otherwise
+        """
+        async with db.cursor() as cur:
+            await cur.execute(
+                """
+                DELETE FROM tasks WHERE id = %(task_id)s;
+                """,
+                {"task_id": task_id},
+            )
+            return cur.rowcount > 0

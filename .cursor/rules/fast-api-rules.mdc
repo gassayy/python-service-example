@@ -1,0 +1,81 @@
+---
+description: FastAPI best practices and patterns for building modern Python web APIs
+globs: app/**/*.py
+alwaysApply: false
+---
+
+# FastAPI Best Practices
+
+FastAPI is used as web service endpoints, storing under `app` directory.
+
+## Project Structure
+- `app/db` includes all database related components
+    - `app/db/database.py` creates connection pool for database connection
+    - `app/db/enums.py` defines enum types for http codes, user roles and project roles for application.
+    - `app/models.py` defines database entities and entity relationships using pydantic.
+    - `app/utils.py` includes basic util functions, such as pagination.
+- `app/{svc}/` for a restful entity endpoints
+    - `app/{svc}/__init__.py`: module file
+    - `app/{svc}/{svc}_crud.py`: implements complex business logic, which requires direct interactions with database.
+    - `app/{svc}/{svc}_deps.py`: implements simple logic, which requires interactions with data models defined in `./app/database.py`
+    - `app/{svc}/{svc}_routes.py`: defines fastapi endpoinets, which descript api and error handling, but don't include business logic in routes.
+    - `app/{svc}/{svc}_schemas.py`: defines requests and responses for fastapi endpoints using pydantic models with validation.
+- `app/main.py`: entrypoints for app web service, including config loading, app initiation and routes population etc
+- `app/config.py`： configuration object.
+
+## API Design
+- Use proper HTTP methods
+- Implement proper status codes
+- Use proper request/response models
+- Implement proper validation
+- Use proper error handling
+- Document APIs with OpenAPI
+
+## Models
+- Use Pydantic models
+- Implement proper validation
+- Use proper type hints
+- Keep models organized
+- Use proper inheritance
+- Implement proper serialization
+
+## Database
+- Use `psycopg` async interfaces
+- Implement proper migrations
+- Use proper connection pooling
+- Implement proper transactions
+- Use proper query optimization
+- Handle database errors properly
+
+## Authentication
+- Implement proper JWT authentication
+- Use proper password hashing
+- Implement proper role-based access
+- Use proper session management
+- Implement proper OAuth2
+- Handle authentication errors properly
+
+## Security
+- Implement proper CORS
+- Use proper rate limiting
+- Implement proper input validation via pydantic
+- Use proper security headers
+- Handle security errors properly
+- Implement proper logging using `loguru logger`
+
+
+## Testing
+- Write proper unit tests
+- Implement proper integration tests
+- Use proper test fixtures
+- Implement proper mocking
+- Test error scenarios
+- Use proper test coverage
+
+## Documentation
+- Use proper docstrings
+- Implement proper API documentation
+- Use proper type hints
+- Keep documentation updated
+- Document error scenarios
+- Use proper versioning 
