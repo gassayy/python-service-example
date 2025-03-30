@@ -10,7 +10,6 @@ authors = [
 dependencies = [
     "cryptography>=44.0.2",
     "fastapi>=0.115.12",
-    "fmtm-splitter>=2.0.0",
     "httptools>=0.6.4",
     "loguru>=0.7.3",
     "pydantic>=2.10.6",
@@ -20,4 +19,5 @@ dependencies = [
     "uvloop>=0.21.0",
     "psycopg[binary]>=3.2.6",
     "psycopg-pool>=3.2.0",
+    "pydantic-settings>=2.8.1",
 ]
