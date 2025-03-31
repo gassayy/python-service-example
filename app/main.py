@@ -20,6 +20,7 @@ from app.db.enums import HTTPStatus
 
 from app.users import user_routes
 from app.tasks import task_routes
+from app.projects import project_routes
 
 def get_api() -> FastAPI:
     """Return the FastAPI app, configured for the environment.
@@ -77,6 +78,7 @@ def get_application() -> FastAPI:
 
     _app.include_router(user_routes.router)
     _app.include_router(task_routes.router)
+    _app.include_router(project_routes.router)
 
     return _app
 

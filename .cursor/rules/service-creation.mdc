@@ -1,0 +1,80 @@
+---
+description: service creation with given db table creation sql.
+globs: 
+alwaysApply: false
+---
+
+# Service creation and schema Tracking
+
+This rule defines how to maintain service metadata and table schemas during service development.
+
+## State Structure
+The AI should maintain the following state when discussing service creation:
+
+```yaml
+service:
+  name: string       # The service name being created/modified
+  tables:           # List of tables in the service
+    - name: string  # Table name
+      ddl: string   # Complete CREATE TABLE statement
+```
+
+## State Usage Guidelines
+
+1. When a user mentions creating or modifying a service:
+   - Track the service name provided
+   - Store any SQL DDL statements for table schemas
+   - Maintain this context for subsequent interactions
+
+2. The tracked state should be used for:
+   - Generating FastAPI routes
+   - Creating Pydantic models
+   - Defining database operations
+   - Creating tests
+
+## Example State
+
+```yaml
+service:
+  name: user_service
+  tables:
+    - name: users
+      ddl: |
+        CREATE TABLE users (
+          id SERIAL PRIMARY KEY,
+          email VARCHAR(255) NOT NULL UNIQUE,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+```
+
+## File Patterns to Monitor
+The following files are relevant for service creation:
+- `app/{service_name}/{service_name}_routes.py`: fastapi routes
+- `app/{service_name}/{service_name}_schemas.py`: pydantic models for db entities, request and response types.
+- `app/{service_name}/{service_name}_crud.py`: business logic which interface to either db model entities or db connections vis psycopg.
+
+When gererate the above files, refers to [user_crud.py](mdc:app/users/user_crud.py), [user_deps.py](mdc:app/users/user_deps.py), [user_routes.py](mdc:app/users/user_routes.py) and [user_schemas.py](mdc:app/users/user_schemas.py).
+
+Notic the following code in [user_routes.py](mdc:app/users/user_routes.py)
+
+```py
+@router.get("", response_model=user_schemas.PaginatedUsers)
+async def get_users(
+    db: Annotated[Connection, Depends(db_conn)],
+    page: int = Query(1, ge=1),
+    results_per_page: int = Query(13, le=100),
+    search: str = "",
+):
+    """Get all user details."""
+    return await get_paginated_users(db, page, results_per_page, search)
+```
+
+Notic that a db type, `Annotated[Connection, Depends(db_conn)]`, is used to inject db connection into each route api.The `db_conn` is import from 'app.db.database'
+
+
+## Response Format
+When generating code based on the tracked state, responses should:
+1. Reference the tracked service name
+2. Use the table schemas to inform the code structure
+3. Follow the project's FastAPI and Python conventions
+

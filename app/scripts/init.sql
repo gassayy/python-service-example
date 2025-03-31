@@ -40,3 +40,27 @@ CREATE TABLE IF NOT EXISTS tasks (
     created_at TIMESTAMP WITH TIME ZONE NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS projects (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    status VARCHAR(50) NOT NULL DEFAULT 'active',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP WITH TIME ZONE,
+    is_active BOOLEAN DEFAULT true,
+    owner_id UUID NOT NULL,
+    settings JSONB DEFAULT '{}'::jsonb,
+    
+    -- Constraints
+    CONSTRAINT projects_status_check CHECK (
+        status IN ('active', 'archived', 'completed', 'on_hold')
+    ),
+    CONSTRAINT projects_name_unique UNIQUE (name, owner_id)
+);
+
+-- Index for faster lookups
+CREATE INDEX idx_projects_owner_id ON projects(owner_id);
+CREATE INDEX idx_projects_status ON projects(status);
+CREATE INDEX idx_projects_is_active ON projects(is_active);
