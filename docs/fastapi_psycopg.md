@@ -1,6 +1,42 @@
-# FastApi
+# FastAPI & Psycopg
 
-# FastAPI's Depends system:
+## FastAPI runtime
+
+```mermaid
+graph TD
+    A[Request Received] --> B[Initialize Response]
+    B --> C[Process Request Body]
+    C --> D{Body Type?}
+    D -->|Form Data| E[Parse Form Data]
+    D -->|JSON| F[Parse JSON]
+    D -->|Raw Bytes| G[Keep as Bytes]
+    
+    E --> H[Solve Dependencies]
+    F --> H
+    G --> H
+    
+    H --> I{Has Errors?}
+    I -->|Yes| J[Raise Validation Error]
+    I -->|No| K[Run Endpoint Function]
+    
+    K --> L{Response Type?}
+    L -->|FastAPI Response| M[Add Background Tasks]
+    L -->|Raw Data| N[Serialize Response]
+    
+    M --> O[Final Response]
+    N --> O
+    
+    O --> P[Add Headers]
+    P --> Q[Return Response]
+    
+    subgraph "Error Handling"
+        R[HTTP Exception] --> S[Return Error Response]
+        T[Validation Error] --> U[Return 422 Error]
+        V[General Error] --> W[Return 400 Error]
+    end
+```
+
+## FastAPI's Depends system:
 `Depends` is FastAPI's dependency injection system. It's a way to:
 1. Share code between endpoints
 2. Handle authentication
@@ -30,4 +66,3 @@ Key points about Depends:
 2. Caching: By default, FastAPI caches the result of dependencies for the same request
 3. Nesting: Dependencies can depend on other dependencies
 4. Resource Management: Great for managing database connections, file handles, etc.
-
